@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>March for Palestine</title>
+  <style>
+    * {margin: 0; padding: 0; box-sizing: border-box;}
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: sans-serif;
+      background: black;
+    }
+    #container {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      background: url('https://i.postimg.cc/9fBs8BWT/background.png') no-repeat center center / cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .center-box {
+      width: 100%;
+      max-width: 400px;
+      aspect-ratio: 9/16;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      background: rgba(0,0,0,0.6);
+      border-radius: 20px;
+      padding: 20px;
+    }
+    .btn {
+      font-size: 1.5em;
+      padding: 15px 25px;
+      background: transparent;
+      border: 3px solid white;
+      border-radius: 12px;
+      color: white;
+      font-weight: bold;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      animation: pulse 2s infinite;
+    }
+    .btn:hover {
+      background: white;
+      color: black;
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1);}
+      50% { transform: scale(1.05);}
+    }
+    .small-text {
+      margin-top: 20px;
+      color: white;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+    #introVideo, #game, #jihadiBtn, #gameoverScreen, #gameUI {
+      display: none;
+    }
+    #introVideo img, #game {
+      border: 5px solid white;
+      border-radius: 20px;
+      max-width: 100%;
+    }
+    canvas {
+      display: block;
+      border: 5px solid white;
+      border-radius: 20px;
+      background: url('https://i.postimg.cc/qBF6YHnT/ae97a1dafd3f41e98996300b19642e0e.webp') repeat-x center / cover;
+    }
+    #gameoverScreen {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: white;
+      font-size: 1.2em;
+    }
+    #resetBtn {
+      margin-top: 10px;
+    }
+    #gameUI {
+      position: absolute;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      pointer-events: none;
+      z-index: 10;
+    }
+    .ui-text {
+      text-align: center;
+      color: white;
+      font-size: 1em;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 5px 10px;
+      border-radius: 10px;
+      margin: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div class="center-box" id="intro">
+      <button class="btn" id="startBtn">March for Palestine</button>
+      <div class="small-text">CREATOR - B BONGO</div>
+    </div>
+
+    <div class="center-box" id="introVideo">
+      <img src="https://i.postimg.cc/dV9KpF6L/intro.gif" id="introGif" />
+      <button class="btn" id="jihadiBtn">জিহাদ করুন</button>
+    </div>
+
+    <div class="center-box" id="game">
+      <div id="gameUI">
+        <div class="ui-text">জয় না হওয়া পর্যন্ত থামবো না</div>
+        <div class="ui-text">বিপদ আসলে স্পেস অথবা টাচ করুন</div>
+      </div>
+      <canvas id="gameCanvas" width="480" height="270"></canvas>
+    </div>
+
+    <div id="gameoverScreen">
+      <div>জিহাদ করে বাঁচতে চাই</div>
+
+      <button class="btn" id="resetBtn">RESTART</button>
+    </div>
+  </div>
+
+  <audio id="bgm" loop>
+    <source src="https://files.catbox.moe/5m01ry.ogg" type="audio/ogg">
+  </audio>
+  <audio id="jumpSound"><source src="https://files.catbox.moe/n1s302.mp3" type="audio/mp3"></audio>
+  <audio id="failSound"><source src="https://files.catbox.moe/yb4dqy.wav" type="audio/wav"></audio>
+  <audio id="clickSound"><source src="https://files.catbox.moe/jlmwed.mp3" type="audio/mp3"></audio>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const jihadiBtn = document.getElementById('jihadiBtn');
+    const intro = document.getElementById('intro');
+    const introVideo = document.getElementById('introVideo');
+    const gameContainer = document.getElementById('game');
+    const gameCanvas = document.getElementById('gameCanvas');
+    const gameoverScreen = document.getElementById('gameoverScreen');
+    const resetBtn = document.getElementById('resetBtn');
+    const gameUI = document.getElementById('gameUI');
+
+    const bgm = document.getElementById('bgm');
+    const jumpSound = document.getElementById('jumpSound');
+    const failSound = document.getElementById('failSound');
+    const clickSound = document.getElementById('clickSound');
+
+    let ctx = gameCanvas.getContext("2d");
+    let gameRunning = false;
+    let gameOver = false;
+    let gameStartTime = null;
+    const maxTime = 5 * 60 * 1000;
+
+    startBtn.addEventListener("click", () => {
+      clickSound.play();
+      intro.style.display = "none";
+      introVideo.style.display = "flex";
+      setTimeout(() => {
+        jihadiBtn.style.display = "block";
+      }, 5000);
+    });
+
+    jihadiBtn.addEventListener("click", () => {
+      clickSound.play();
+      introVideo.style.display = "none";
+      gameContainer.style.display = "flex";
+      gameUI.style.display = "flex";
+      startGame();
+    });
+
+    resetBtn.addEventListener("click", () => {
+      window.location.reload();
+    });
+
+    // Assets
+    let char1 = new Image();
+    let char2 = new Image();
+    let fire = new Image();
+    let pillar = new Image();
+    char1.src = "https://i.postimg.cc/gJSQdkL2/char1.png";
+    char2.src = "https://i.postimg.cc/90BpVLnt/char2.png";
+    fire.src = "https://i.postimg.cc/vBHkp6BK/fire.png";
+    pillar.src = "https://i.postimg.cc/k5CkvHdq/pillar.png";
+
+    let player = { x: 140, y: 200, vy: 0, jumping: false };
+    let ai = { x: 150, y: 200 };
+    let gravity = 0.5;
+    let obstacles = [];
+
+    function startGame() {
+      gameRunning = true;
+      bgm.play();
+      gameStartTime = Date.now();
+      spawnObstacle();
+      requestAnimationFrame(gameLoop);
+    }
+
+    function spawnObstacle() {
+      const type = Math.random() < 0.5 ? "fire" : "pillar";
+      const obstacle = {
+        x: gameCanvas.width,
+        y: 200,
+        type: type,
+        width: 40,
+        height: 40
+      };
+      obstacles.push(obstacle);
+      setTimeout(spawnObstacle, 2500); // slowed from 2000 to 2500ms
+    }
+
+    function jump() {
+      if (!player.jumping) {
+        player.vy = -13;
+        player.jumping = true;
+        jumpSound.play();
+      }
+    }
+
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") jump();
+    });
+    document.addEventListener("touchstart", jump);
+
+    function gameLoop() {
+      if (!gameRunning) return;
+
+      let now = Date.now();
+      let elapsed = now - gameStartTime;
+      if (elapsed >= maxTime) {
+        gameRunning = false;
+        gameoverScreen.style.display = "block";
+        return;
+      }
+
+      ctx.clearRect(0, 0, gameCanvas.width, gameCanvas.height);
+
+      // AI character move slower
+      ai.x += 1; // was 2
+      ctx.drawImage(char1, ai.x, ai.y, 40, 40);
+
+      // Player jump & gravity
+      player.vy += gravity;
+      player.y += player.vy;
+      if (player.y > 200) {
+        player.y = 200;
+        player.vy = 0;
+        player.jumping = false;
+      }
+      ctx.drawImage(char2, player.x, player.y, 40, 40);
+
+      for (let i = 0; i < obstacles.length; i++) {
+        let obs = obstacles[i];
+        obs.x -= 2; // slowed from 4
+        let img = obs.type === "fire" ? fire : pillar;
+        ctx.drawImage(img, obs.x, obs.y, obs.width, obs.height);
+
+        if (
+          player.x < obs.x + obs.width &&
+          player.x + 10 > obs.x &&
+          player.y < obs.y + obs.height &&
+          player.y + 10 > obs.y
+        ) {
+          failSound.play();
+          gameRunning = false;
+          gameoverScreen.style.display = "block";
+        }
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+  </script>
+
+  <!-- Ad script as requested -->
+  <script type='text/javascript' src='//farphrasedirect.com/f5/d9/c5/f5d9c5b36ba150f641b1d397ab5c6292.js'></script>
+</body>
+</html>
